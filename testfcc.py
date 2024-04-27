@@ -25,7 +25,7 @@ ATilde1=p1+(a0-p0)*(-hf*sin(2*phi)*cos(2*theta)+hf*sin(2*phi))\
     +(a1-p1)*(hf*cos(2*phi)*cos(2*theta)-hf*cos(2*phi)-hf*cos(2*theta)-hf)+a2*sin(phi)*cos(2*theta)
 
 
-ATilde2=(a0-p0)*sin(2*theta)*cos(phi)+(a1-p1)*sin(phi)*cos(2*theta)+a2*cos(2*theta)
+ATilde2=(a0-p0)*sin(2*theta)*cos(phi)+(a1-p1)*sin(phi)*sin(2*theta)+a2*cos(2*theta)
 
 ##################################functions for point A0
 g00=(sin(2*pi*(ATilde0-A0[0])))**2+(cos(2*pi*(ATilde0-A0[0]))-1)**2\
@@ -260,7 +260,7 @@ g33=g33.subs([(a0,A3[0]),(a1,A3[1]),(a2,A3[2])])
 
 dg30=[diff(g30,p0),diff(g30,p1),diff(g30,theta),diff(g30,phi)]
 
-dg21=[diff(g31,p0),diff(g31,p1),diff(g31,theta),diff(g31,phi)]
+dg31=[diff(g31,p0),diff(g31,p1),diff(g31,theta),diff(g31,phi)]
 
 dg32=[diff(g32,p0),diff(g32,p1),diff(g32,theta),diff(g32,phi)]
 
@@ -278,30 +278,43 @@ g32Np=lambdify((p0,p1,theta,phi),g32,"numpy")
 g33Np=lambdify((p0,p1,theta,phi),g33,"numpy")
 
 
-dg20Np=lambdify((p0,p1,theta,phi),dg20,"numpy")
+dg30Np=lambdify((p0,p1,theta,phi),dg30,"numpy")
 
-dg21Np=lambdify((p0,p1,theta,phi),dg21,"numpy")
+dg31Np=lambdify((p0,p1,theta,phi),dg31,"numpy")
 
-dg22Np=lambdify((p0,p1,theta,phi),dg22,"numpy")
+dg32Np=lambdify((p0,p1,theta,phi),dg32,"numpy")
 
-dg23Np=lambdify((p0,p1,theta,phi),dg23,"numpy")
+dg33Np=lambdify((p0,p1,theta,phi),dg33,"numpy")
 
-def f2df2(p0,p1,theta,phi):
-    g20Val=g20Np(p0,p1,theta,phi)
-    g21Val = g21Np(p0, p1, theta, phi)
-    g22Val = g22Np(p0, p1, theta, phi)
-    g23Val = g23Np(p0, p1, theta, phi)
-    gValsTmp=[g20Val,g21Val,g22Val,g23Val]
+def f3df3(p0,p1,theta,phi):
+    g30Val=g30Np(p0,p1,theta,phi)
+    g31Val = g31Np(p0, p1, theta, phi)
+    g32Val = g32Np(p0, p1, theta, phi)
+    g33Val = g33Np(p0, p1, theta, phi)
+    gValsTmp=[g30Val,g31Val,g32Val,g33Val]
     inds=np.argsort(gValsTmp)
 
-    dg20Val=dg20Np(p0,p1,theta,phi)
-    dg21Val = dg21Np(p0, p1, theta, phi)
-    dg22Val = dg22Np(p0, p1, theta, phi)
-    dg23Val = dg23Np(p0, p1, theta, phi)
+    dg30Val=dg30Np(p0,p1,theta,phi)
+    dg31Val = dg31Np(p0, p1, theta, phi)
+    dg32Val = dg32Np(p0, p1, theta, phi)
+    dg33Val = dg33Np(p0, p1, theta, phi)
 
-    dgValsTmp=[dg20Val,dg21Val,dg22Val,dg23Val]
+    dgValsTmp=[dg30Val,dg31Val,dg32Val,dg33Val]
     return gValsTmp[inds[0]], dgValsTmp[inds[0]]
 #####################################end of functions for A3
+
+
+def cdc(lmd):
+    p0,p1,theta,phi=lmd
+    f0,df0=f0df0(p0,p1,theta,phi)
+    f1,df1=f1df1(p0,p1,theta,phi)
+    f2,df2=f2df2(p0,p1,theta,phi)
+    f3,df3=f3df3(p0,p1,theta,phi)
+    funcVal=f0+f1+f2+f3
+    direction=[df0,df1,df2,df3]
+
+    return funcVal,direction
+
 
 p0ValsAll=np.linspace(0.1,1,10)
 p1ValsAll=np.linspace(0.1,1,10)

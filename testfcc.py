@@ -1,7 +1,8 @@
 import numpy as np
 from multiprocessing import Pool
 from sympy import *
-
+from scipy.optimize import line_search
+import warnings
 
 hf=Rational(1,2)
 
@@ -22,7 +23,7 @@ ATilde0=p0+(a0-p0)*(-hf*cos(2*phi)*cos(2*theta)+hf*cos(2*phi)-hf*cos(2*theta)-hf
 
 
 ATilde1=p1+(a0-p0)*(-hf*sin(2*phi)*cos(2*theta)+hf*sin(2*phi))\
-    +(a1-p1)*(hf*cos(2*phi)*cos(2*theta)-hf*cos(2*phi)-hf*cos(2*theta)-hf)+a2*sin(phi)*cos(2*theta)
+    +(a1-p1)*(hf*cos(2*phi)*cos(2*theta)-hf*cos(2*phi)-hf*cos(2*theta)-hf)+a2*sin(phi)*sin(2*theta)
 
 
 ATilde2=(a0-p0)*sin(2*theta)*cos(phi)+(a1-p1)*sin(phi)*sin(2*theta)+a2*cos(2*theta)
@@ -82,16 +83,16 @@ def f0df0(p0,p1,theta,phi):
     g01Val = g01Np(p0, p1, theta, phi)
     g02Val = g02Np(p0, p1, theta, phi)
     g03Val = g03Np(p0, p1, theta, phi)
-    gValsTmp=[g00Val,g01Val,g02Val,g03Val]
+    gValsTmp=np.array([g00Val,g01Val,g02Val,g03Val])
     inds=np.argsort([g00Val,g01Val,g02Val,g03Val])
 
     dg00Val=dg00Np(p0,p1,theta,phi)
     dg01Val = dg01Np(p0, p1, theta, phi)
     dg02Val = dg02Np(p0, p1, theta, phi)
     dg03Val = dg03Np(p0, p1, theta, phi)
-
-    dgValsTmp=[dg00Val,dg01Val,dg02Val,dg03Val]
-    return gValsTmp[inds[0]], dgValsTmp[inds[0]]
+    # print("ind="+str(inds[0]))
+    dgValsTmp=np.array([dg00Val,dg01Val,dg02Val,dg03Val])
+    return gValsTmp[inds[0]], dgValsTmp[inds[0],:]
 
 #####################################end of functions for A0
 
@@ -153,7 +154,7 @@ def f1df1(p0,p1,theta,phi):
     g11Val = g11Np(p0, p1, theta, phi)
     g12Val = g12Np(p0, p1, theta, phi)
     g13Val = g13Np(p0, p1, theta, phi)
-    gValsTmp=[g10Val,g11Val,g12Val,g13Val]
+    gValsTmp=np.array([g10Val,g11Val,g12Val,g13Val])
     inds=np.argsort(gValsTmp)
 
     dg10Val=dg10Np(p0,p1,theta,phi)
@@ -161,8 +162,8 @@ def f1df1(p0,p1,theta,phi):
     dg12Val = dg12Np(p0, p1, theta, phi)
     dg13Val = dg13Np(p0, p1, theta, phi)
 
-    dgValsTmp=[dg10Val,dg11Val,dg12Val,dg13Val]
-    return gValsTmp[inds[0]], dgValsTmp[inds[0]]
+    dgValsTmp=np.array([dg10Val,dg11Val,dg12Val,dg13Val])
+    return gValsTmp[inds[0]], dgValsTmp[inds[0],:]
 
 #####################################end of functions for A1
 
@@ -222,7 +223,7 @@ def f2df2(p0,p1,theta,phi):
     g21Val = g21Np(p0, p1, theta, phi)
     g22Val = g22Np(p0, p1, theta, phi)
     g23Val = g23Np(p0, p1, theta, phi)
-    gValsTmp=[g20Val,g21Val,g22Val,g23Val]
+    gValsTmp=np.array([g20Val,g21Val,g22Val,g23Val])
     inds=np.argsort(gValsTmp)
 
     dg20Val=dg20Np(p0,p1,theta,phi)
@@ -230,8 +231,8 @@ def f2df2(p0,p1,theta,phi):
     dg22Val = dg22Np(p0, p1, theta, phi)
     dg23Val = dg23Np(p0, p1, theta, phi)
 
-    dgValsTmp=[dg20Val,dg21Val,dg22Val,dg23Val]
-    return gValsTmp[inds[0]], dgValsTmp[inds[0]]
+    dgValsTmp=np.array([dg20Val,dg21Val,dg22Val,dg23Val])
+    return gValsTmp[inds[0]], dgValsTmp[inds[0],:]
 
 #####################################end of functions for A2
 
@@ -291,7 +292,7 @@ def f3df3(p0,p1,theta,phi):
     g31Val = g31Np(p0, p1, theta, phi)
     g32Val = g32Np(p0, p1, theta, phi)
     g33Val = g33Np(p0, p1, theta, phi)
-    gValsTmp=[g30Val,g31Val,g32Val,g33Val]
+    gValsTmp=np.array([g30Val,g31Val,g32Val,g33Val])
     inds=np.argsort(gValsTmp)
 
     dg30Val=dg30Np(p0,p1,theta,phi)
@@ -299,8 +300,8 @@ def f3df3(p0,p1,theta,phi):
     dg32Val = dg32Np(p0, p1, theta, phi)
     dg33Val = dg33Np(p0, p1, theta, phi)
 
-    dgValsTmp=[dg30Val,dg31Val,dg32Val,dg33Val]
-    return gValsTmp[inds[0]], dgValsTmp[inds[0]]
+    dgValsTmp=np.array([dg30Val,dg31Val,dg32Val,dg33Val])
+    return gValsTmp[inds[0]], dgValsTmp[inds[0],:]
 #####################################end of functions for A3
 
 
@@ -311,20 +312,44 @@ def cdc(lmd):
     f2,df2=f2df2(p0,p1,theta,phi)
     f3,df3=f3df3(p0,p1,theta,phi)
     funcVal=f0+f1+f2+f3
-    direction=[df0,df1,df2,df3]
+    direction=df0+df1+df2+df3
 
     return funcVal,direction
 
 
-p0ValsAll=np.linspace(0.1,1,10)
-p1ValsAll=np.linspace(0.1,1,10)
-thetaValsAll=np.linspace(0.1,np.pi,10)
-phiValsAll=np.linspace(0.1,2*np.pi,10)
+p0ValsAll=np.linspace(0.1,1,5)
+p1ValsAll=np.linspace(0.1,1,5)
+thetaValsAll=np.linspace(0.1,np.pi,5)
+phiValsAll=np.linspace(0.1,2*np.pi,5)
 
 inInitVals=[[p0val,p1val,thetaval,phival] for p0val in p0ValsAll for p1val in p1ValsAll for thetaval in thetaValsAll for phival in phiValsAll]
 
 
-procNum=48
+def obj_func(lmd):
+    funcVal,_=cdc(lmd)
+    return funcVal
 
-pool0=Pool(procNum)
+def obj_grad(lmd):
+    _,grad=cdc(lmd)
+    return grad
 
+def search_min(lmd):
+    grad_start=-obj_grad(lmd)
+    rst=line_search(obj_func,obj_grad,lmd,grad_start,maxiter=1000)
+    return rst
+
+
+eps=1e-5
+counter=0
+for lmdTmp in inInitVals:
+    print("computing "+str(counter))
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        rst=search_min(lmdTmp)
+        if w:
+            pass
+        else:
+            if np.abs(rst[3]) < eps:
+                print(lmdTmp)
+
+    counter+=1

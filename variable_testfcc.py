@@ -338,25 +338,28 @@ def obj_grad(lmd):
     return grad
 
 def search_min(lmd):
-    tBBStart = datetime.now()
-    x, val = stab_BB(lmd, obj_func, obj_grad, c=0.1)
-    tBBEnd = datetime.now()
-    print("bb time: ", tBBEnd - tBBStart)
-    return x, val
-counter=0
-for lmdTmp in inInitVals:
-    x,val=search_min(lmdTmp)
-    print("computation " + str(counter))
-
-    if np.abs(obj_func(x))<1e-10:
-
-        print("argmin="+str(x))
-        print("min="+str(obj_func(x)))
-    counter+=1
-# lmdTmp=inInitVals[10]
-# x,val=search_min(lmdTmp)
-# print(x)
-# print(obj_func(x))
+    tBBStart=datetime.now()
+    x,val=stab_BB(lmd,obj_func,obj_grad,c=0.1)
+    tBBEnd=datetime.now()
+    print("bb time: ",tBBEnd-tBBStart)
+    return x,val
+#########################
+# counter=0
+# for lmdTmp in inInitVals:
+#     x,val=search_min(lmdTmp)
+#     print("computation " + str(counter))
+#
+#     if np.abs(obj_func(x))<1e-10:
+#
+#         print("argmin="+str(x))
+#         print("min="+str(obj_func(x)))
+#     counter+=1
+##################################
+lmdTmp=[ 4.86279599e-15, -1.59270249e-16,  2.35619449e+00,  3.14159265e+00]
+x,val=search_min(lmdTmp)
+print(x)
+print(obj_func(x))
+#########################
 #plot cost function against p0
 
 

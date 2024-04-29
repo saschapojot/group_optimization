@@ -9,7 +9,7 @@ def stab_BB(
     deltaUpdateStrategy = 'adaptative',
     deltaInput = 1e6,
     c = 0.2,
-    maxIt = 10000,
+    maxIt = 15,
     tol = 1e-7,
     verbose=False,
 ):
@@ -114,7 +114,7 @@ def stab_BB(
             #: History of gradient norm
             self.normGrad = [np.linalg.norm(gk)]
             for k in range(int(maxIt)):
-                if len(self.x)<10 or (len(self.x)>=10 and self.dist_last10(self.x[-10:])):#self.normGrad[-1] > tol:
+                if len(self.x)<5 or (len(self.x)>=5 and self.dist_last10(self.x[-3:])):#self.normGrad[-1] > tol:
                     #: $s_{k-1} \leftarrow x_{k-1} - x_{k-2}$
                     skant = self.x[-1] - self.x[-2]
                     #: $y_{k-1} \leftarrow  g_k - g_{k-1}

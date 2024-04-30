@@ -9,8 +9,8 @@ def stab_BB(
     deltaUpdateStrategy = 'adaptative',
     deltaInput = 1e6,
     c = 0.2,
-    maxIt = 15,
-    tol = 1e-7,
+    maxIt = 20,
+    tol = 1e-8,
     verbose=False,
 ):
     """ Stabilized Barzilai-Borwein Method for unconstrained optimization

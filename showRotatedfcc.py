@@ -45,7 +45,7 @@ def rotatedPoint(p0,p1,p2,theta,phi,A):
 
 
 
-lmdTmp=[ 1.00821650e-01, -3.39022356e-15,  1.57079633e+00,  6.28318531e+00]
+lmdTmp=[0.5, 4.702460643102313e-12, 0.7853980963377959, 5.235860059479236e-08]
 p0,p1,theta,phi=lmdTmp
 
 
@@ -65,4 +65,5 @@ print("phi="+str((phi%np.pi)/np.pi)+"pi")
 a=np.array([1,0,0])
 b=np.array([0,1,0])
 c=np.array([0,0,1])
-print(rotatedPoint(p0,p1,p2,theta,phi,A0))
+
+print(rotatedPoint(p0,p1,p2,theta,phi,A2))

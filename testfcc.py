@@ -5,7 +5,7 @@ from stab_bb_correction import stab_BB
 import warnings
 import matplotlib.pyplot as plt
 from datetime import datetime
-
+from scipy.spatial import cKDTree
 
 
 hf=Rational(1,2)
@@ -328,7 +328,27 @@ phiValsAll=np.linspace(0.1,2*np.pi,5)
 
 inInitVals=[[p0val,p1val,thetaval,phival] for p0val in p0ValsAll for p1val in p1ValsAll for thetaval in thetaValsAll for phival in phiValsAll]
 
+def mod1(val):
+    epsRel = 1e-6
+    epsAbs = 1e-7
+    # if the axis lies on x-y plane
+    val=val%1
+    if np.isclose(val, 1, rtol=epsRel, atol=epsAbs, equal_nan=False):
+        val=0
+    if np.isclose(val, 0, rtol=epsRel, atol=epsAbs, equal_nan=False):
+        val=0
+    return val
 
+def modpi(val):
+    epsRel = 1e-6
+    epsAbs = 1e-7
+    # if the axis lies on x-y plane
+    val = val % np.pi
+    if np.isclose(val, np.pi, rtol=epsRel, atol=epsAbs, equal_nan=False):
+        val = 0
+    if np.isclose(val, 0, rtol=epsRel, atol=epsAbs, equal_nan=False):
+        val = 0
+    return val
 def obj_func(lmd):
     funcVal,_=cdc(lmd)
     return funcVal
@@ -338,25 +358,98 @@ def obj_grad(lmd):
     return grad
 
 def search_min(lmd):
-    tBBStart = datetime.now()
+    # tBBStart = datetime.now()
     x, val = stab_BB(lmd, obj_func, obj_grad, c=0.1)
-    tBBEnd = datetime.now()
-    print("bb time: ", tBBEnd - tBBStart)
-    return x, val
-counter=0
-for lmdTmp in inInitVals:
-    x,val=search_min(lmdTmp)
-    print("computation " + str(counter))
+    # tBBEnd = datetime.now()
+    # print("bb time: ", tBBEnd - tBBStart)
+    return [x, val]
 
-    if np.abs(obj_func(x))<1e-10:
+def result2StandardForm(lmd):
+    """
 
-        print("argmin="+str(x))
-        print("min="+str(obj_func(x)))
-    counter+=1
+    :param lmd: [p0,p1,theta,phi] from BB line search
+    :return:
+    """
+    p0,p1,theta,phi=lmd
+    epsRel=1e-6
+    epsAbs=1e-6
+    #if the axis lies on x-y plane
+    if np.isclose(np.cos(theta), 0, rtol=epsRel, atol=epsAbs, equal_nan=False):
+        #if the rotation axis is parallel to x axis
+        if np.isclose(np.sin(phi),0,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            #we take the intersection point of the rotation axis with y axis
+            lmdStandard=[0,mod1(p1),modpi(theta),modpi(phi)]
+            return lmdStandard
+        #if the rotation axis is parallel to y axis
+        if np.isclose(np.cos(phi),0,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            #we take the intersection point of the rotation axis with x axis
+            lmdStandard = [mod1(p0),0,modpi(theta),modpi(phi)]
+            return lmdStandard
+        #if the rotation axis intersects both x and y axis, we we take the intersection point of the rotation axis with x axis
+        xVal=p0-p1*np.cos(phi)/np.sin(phi)
+        lmdStandard =[mod1(xVal),0,modpi(theta),modpi(phi)]
+        return lmdStandard
+
+    # if the axis does not lie on x-y plane
+    #if the axis is orthogonal to x-y plane
+    if np.isclose(np.sin(theta), 0, rtol=epsRel, atol=epsAbs, equal_nan=False):
+        lmdStandard =[mod1(p0),mod1(p1),0,0]
+        return lmdStandard
+    lmdStandard=[mod1(p0),mod1(p1),modpi(theta),modpi(phi)]
+    return lmdStandard
+
+
+
+vecsAll=[]
+
+# counter=0
+# for lmdTmp in inInitVals:
+#     x,val=search_min(lmdTmp)
+#
+#     if np.abs(obj_func(x))<1e-10:
+#         print("computation " + str(counter))
+#         xStandard=result2StandardForm(x)
+#         vecsAll.append(xStandard)
+#     counter+=1
+#################################parallel execution
+tParallelStart=datetime.now()
+procNum=48
+pool0=Pool(procNum)
+retAll=pool0.map(search_min,inInitVals)
+resultsAll=[]
+for item in retAll:
+    x,_=item
+    if np.abs(obj_func(x)) < 1e-10:
+        xStandard = result2StandardForm(x)
+        vecsAll.append(xStandard)
+tParallelEnd=datetime.now()
+print("parallel time: ",tParallelEnd-tParallelStart)
+###################################
+vecsAll=np.array(vecsAll)
+
+tree = cKDTree(vecsAll)
+threshHold=1e-7
+# Find pairs with distances less than the threshold
+pairs = tree.query_pairs(r=threshHold, output_type='ndarray')
+
+# Create a mask to filter out duplicates
+keep = np.ones(len(vecsAll), dtype=bool)
+for i, j in pairs:
+    keep[j] = False  # Mark the second item in each pair as duplicate
+
+# Filter the vectors
+filtered_vectors = vecsAll[keep]
+for vec in filtered_vectors:
+    print(vec)
+    print("#############")
+################################
 # lmdTmp=inInitVals[10]
 # x,val=search_min(lmdTmp)
 # print(x)
 # print(obj_func(x))
+
+################################
+
 #plot cost function against p0
 
 
